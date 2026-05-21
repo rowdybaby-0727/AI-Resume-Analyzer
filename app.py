@@ -2,97 +2,255 @@ import streamlit as st
 import PyPDF2
 import pandas as pd
 
-# Page config
-st.set_page_config(page_title="AI Resume Analyzer")
+# -----------------------------------
+# PAGE CONFIG
+# -----------------------------------
 
-# Title
+st.set_page_config(
+    page_title="AI Resume Analyzer",
+    page_icon="📄",
+    layout="wide"
+)
+
+# -----------------------------------
+# TITLE
+# -----------------------------------
+
 st.title("📄 AI Resume Analyzer")
 
-st.write("Upload your resume PDF")
+st.write(
+    "Upload your resume and get ATS score, "
+    "skill analysis and improvement suggestions."
+)
 
-# Skill database
-skills_db = [
-    "python",
-    "java",
-    "c",
-    "sql",
-    "html",
-    "css",
-    "javascript",
-    "machine learning",
-    "deep learning",
-    "tensorflow",
-    "streamlit",
-    "react",
-    "nodejs",
-    "mongodb",
-    "git",
-    "github"
-]
+# -----------------------------------
+# LOAD SKILLS CSV
+# -----------------------------------
 
-# Upload PDF
-uploaded_file = st.file_uploader("Choose Resume PDF", type="pdf")
+skills_df = pd.read_csv("skills.csv")
 
-# Extract text function
+skills_db = skills_df["Skill"].str.lower().tolist()
+
+# -----------------------------------
+# FILE UPLOAD
+# -----------------------------------
+
+uploaded_file = st.file_uploader(
+    "Choose Resume PDF",
+    type="pdf"
+)
+
+# -----------------------------------
+# PDF TEXT EXTRACTION
+# -----------------------------------
+
 def extract_text_from_pdf(pdf_file):
+
     text = ""
 
     pdf_reader = PyPDF2.PdfReader(pdf_file)
 
     for page in pdf_reader.pages:
-        text += page.extract_text()
+
+        extracted = page.extract_text()
+
+        if extracted:
+            text += extracted
 
     return text.lower()
 
-# If uploaded
+# -----------------------------------
+# MAIN PROCESS
+# -----------------------------------
+
 if uploaded_file is not None:
 
     st.success("Resume uploaded successfully!")
 
-    # Extract resume text
+    # Extract Resume Text
     resume_text = extract_text_from_pdf(uploaded_file)
 
-    # Show extracted text
+    # -----------------------------------
+    # RESUME CONTENT
+    # -----------------------------------
+
     st.subheader("📑 Resume Content")
 
-    st.text_area("Extracted Text", resume_text, height=250)
+    st.text_area(
+        "Extracted Resume Text",
+        resume_text,
+        height=250
+    )
 
-    # Skill extraction
+    # -----------------------------------
+    # SKILL DETECTION
+    # -----------------------------------
+
     found_skills = []
 
     for skill in skills_db:
-        if skill in resume_text:
-            found_skills.append(skill)
 
-    # Display skills
-    st.subheader("💡 Skills Found")
+        if skill in resume_text:
+
+            found_skills.append(skill.title())
+
+    # -----------------------------------
+    # DISPLAY SKILLS
+    # -----------------------------------
+
+    st.subheader("💡 Skills Detected")
 
     if found_skills:
+
+        st.success("Skills Found Successfully")
+
         st.write(found_skills)
+
     else:
+
         st.warning("No skills detected")
 
-    # ATS Score
-    ats_score = int((len(found_skills) / len(skills_db)) * 100)
+    # -----------------------------------
+    # ATS SCORE
+    # -----------------------------------
+
+    ats_score = int(
+        (len(found_skills) / len(skills_db)) * 100
+    )
 
     st.subheader("📊 ATS Score")
 
     st.progress(ats_score)
 
-    st.write(f"ATS Score: {ats_score}%")
+    st.write(f"### ATS Score: {ats_score}%")
 
-    # Suggestions
-    st.subheader("🚀 Suggestions")
+    # -----------------------------------
+    # ATS FEEDBACK
+    # -----------------------------------
+
+    if ats_score >= 80:
+
+        st.success("Excellent ATS Resume")
+
+    elif ats_score >= 60:
+
+        st.warning("Good Resume. Can improve more.")
+
+    else:
+
+        st.error("Resume needs improvement")
+
+    # -----------------------------------
+    # MISSING SKILLS
+    # -----------------------------------
+
+    st.subheader("🚀 Missing Skills")
 
     missing_skills = []
 
     for skill in skills_db:
-        if skill not in found_skills:
-            missing_skills.append(skill)
+
+        if skill.title() not in found_skills:
+
+            missing_skills.append(skill.title())
 
     if missing_skills:
-        st.write("Consider adding these skills:")
+
+        st.write(
+            "Consider adding these skills:"
+        )
+
         st.write(missing_skills)
 
     else:
-        st.success("Excellent Resume!")
+
+        st.success(
+            "Excellent Skill Coverage"
+        )
+
+    # -----------------------------------
+    # RESUME ANALYSIS
+    # -----------------------------------
+
+    st.subheader("📈 Resume Analysis")
+
+    total_words = len(resume_text.split())
+
+    total_skills = len(found_skills)
+
+    analysis_data = {
+
+        "Metric": [
+            "Total Words",
+            "Skills Found",
+            "Missing Skills",
+            "ATS Score"
+        ],
+
+        "Value": [
+            total_words,
+            total_skills,
+            len(missing_skills),
+            f"{ats_score}%"
+        ]
+    }
+
+    analysis_df = pd.DataFrame(
+        analysis_data
+    )
+
+    st.table(analysis_df)
+
+    # -----------------------------------
+    # RESUME SUGGESTIONS
+    # -----------------------------------
+
+    st.subheader("🧠 AI Suggestions")
+
+    suggestions = []
+
+    if total_words < 200:
+
+        suggestions.append(
+            "Increase resume content."
+        )
+
+    if ats_score < 60:
+
+        suggestions.append(
+            "Add more technical skills."
+        )
+
+    if "project" not in resume_text:
+
+        suggestions.append(
+            "Add project section."
+        )
+
+    if "internship" not in resume_text:
+
+        suggestions.append(
+            "Add internship experience."
+        )
+
+    if len(suggestions) == 0:
+
+        st.success(
+            "Your resume looks professional."
+        )
+
+    else:
+
+        for suggestion in suggestions:
+
+            st.write("✅", suggestion)
+
+# -----------------------------------
+# FOOTER
+# -----------------------------------
+
+st.markdown("---")
+
+st.write(
+    "Developed by Prasanna R 🚀"
+)
